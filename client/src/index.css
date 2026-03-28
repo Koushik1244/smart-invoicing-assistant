@@ -11,12 +11,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Same background as original app shell */
-.app-shell {
-  background-color: #0f0f0f;
-  min-height: 100vh;
-}
-
 /* Scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: #1a1a1a; }
@@ -54,9 +48,9 @@ a, button, input, select, textarea {
 .delay-300 { animation-delay: 0.3s; opacity: 0; }
 .delay-400 { animation-delay: 0.4s; opacity: 0; }
 
-/* Focus ring — professional, not decorative glow */
+/* Glowing accent ring */
 .ring-accent { box-shadow: 0 0 0 1px #6366f1; }
-.ring-accent-glow { box-shadow: 0 0 12px 2px rgba(99, 102, 241, 0.25); }
+.ring-accent-glow { box-shadow: 0 0 12px 2px rgba(99,102,241,0.25); }
 
 /* Landing — 3D scene */
 .landing-scene {
@@ -73,7 +67,6 @@ a, button, input, select, textarea {
     radial-gradient(ellipse 50% 35% at 0% 80%, rgba(236, 72, 153, 0.06), transparent);
 }
 
-/* Landing hero — cards pull into hub */
 @keyframes cardAbsorb {
   0%,
   100% {
@@ -88,3 +81,4 @@ a, button, input, select, textarea {
 .animate-card-absorb {
   animation: cardAbsorb 5s ease-in-out infinite;
 }
+

@@ -3,30 +3,6 @@ export default {
   content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
-      colors: {
-        app: {
-          bg: '#0f0f0f',
-          surface: '#111111',
-          raised: '#161616',
-          input: '#1a1a1a',
-          deep: '#0f0f0f',
-        },
-        line: {
-          DEFAULT: '#333',
-          subtle: '#232323',
-        },
-        brand: {
-          DEFAULT: '#6366f1',
-          hover: '#4f46e5',
-          navy: '#312e81',
-          muted: 'rgba(99, 102, 241, 0.2)',
-          border: 'rgba(99, 102, 241, 0.35)',
-        },
-      },
-      boxShadow: {
-        brand: '0 1px 2px rgba(0, 0, 0, 0.45)',
-        'brand-md': '0 4px 14px rgba(99, 102, 241, 0.2)',
-      },
       animation: {
         'float-slow': 'float3d 7s ease-in-out infinite',
         'float-mid': 'float3d 5.5s ease-in-out infinite',
@@ -36,7 +12,7 @@ export default {
         'pop-alert-3': 'popAlert 2.8s ease-in-out infinite 0.8s',
         'flow-merge': 'flowMerge 4s ease-in-out infinite',
         'glow-pulse': 'glowPulse 3s ease-in-out infinite',
-        'orbit': 'orbit 20s linear infinite',
+        orbit: 'orbit 20s linear infinite',
       },
       keyframes: {
         float3d: {
