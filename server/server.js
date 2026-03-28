@@ -23,8 +23,9 @@ app.use('/api/customers', require('./routes/customerRoutes'));
 app.use('/api/invoices', require('./routes/invoiceRoutes'));
 app.use('/api/reminders', require('./routes/reminderRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
-app.use('/api/voice',     require('./routes/voiceRoutes'));
-app.use('/api/insights',  require('./routes/insightsRoutes'));
+app.use('/api/voice',          require('./routes/voiceRoutes'));
+app.use('/api/insights',       require('./routes/insightsRoutes'));
+app.use('/api/notifications',  require('./routes/notificationRoutes'));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

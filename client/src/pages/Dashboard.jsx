@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
-import { getInvoices, getInsights } from '../services/api';
+import { getInvoices, getInsights, setBusyMode as syncBusyMode } from '../services/api';
 import { Link } from 'react-router-dom';
 
 const STATUS_STYLES = {
@@ -91,6 +91,7 @@ export default function Dashboard() {
     const next = !busyMode;
     setBusyMode(next);
     localStorage.setItem('busyMode', String(next));
+    syncBusyMode(next).catch(() => {}); // sync with backend (fire-and-forget)
   };
 
   useEffect(() => {
@@ -272,6 +273,18 @@ export default function Dashboard() {
         <div className="flex items-center gap-2 mb-4">
           <h2 className="text-base font-semibold text-white">AI Insights</h2>
           <span className="text-xs text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full">Gemini</span>
+          <button
+            onClick={() => {
+              setInsightsLoading(true);
+              getInsights()
+                .then(({ data }) => setInsights(data.insights || []))
+                .catch(() => setInsights([]))
+                .finally(() => setInsightsLoading(false));
+            }}
+            className="ml-auto text-xs text-gray-500 hover:text-gray-300 border border-[#2a2a2a] hover:border-[#444] px-3 py-1 rounded-lg transition-all"
+          >
+            ↻ Refresh
+          </button>
         </div>
         {insightsLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -283,18 +296,25 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {insights.map((insight, i) => (
-              <div
-                key={i}
-                className="bg-[#161616] border border-indigo-900/30 hover:border-indigo-500/40 rounded-2xl p-5 transition-all group"
-              >
-                <div className="flex items-start gap-3">
-                  <span className="text-xl shrink-0 mt-0.5">💡</span>
-                  <p className="text-sm text-gray-300 leading-relaxed">{insight}</p>
+            {insights.map((insight, i) => {
+              // Support both string (legacy) and {icon, title, insight} object
+              const icon  = insight?.icon  || '💡';
+              const title = insight?.title || `Insight ${i + 1}`;
+              const text  = insight?.insight || (typeof insight === 'string' ? insight : '');
+              return (
+                <div
+                  key={i}
+                  className="bg-[#161616] border border-indigo-900/30 hover:border-indigo-500/40 rounded-2xl p-5 transition-all"
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xl">{icon}</span>
+                    <p className="text-sm font-semibold text-white">{title}</p>
+                  </div>
+                  <p className="text-sm text-gray-400 leading-relaxed">{text}</p>
+                  <p className="text-[10px] text-indigo-600 mt-3 font-medium uppercase tracking-wider">Gemini AI</p>
                 </div>
-                <p className="text-[10px] text-indigo-600 mt-3 font-medium uppercase tracking-wider">Insight {i + 1}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

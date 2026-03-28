@@ -66,4 +66,15 @@ const trackActivity = async (req, res) => {
   }
 };
 
-module.exports = { register, login, trackActivity };
+// PATCH /api/auth/busy-mode  — sync busy mode with backend
+const setBusyMode = async (req, res) => {
+  try {
+    const { busyMode } = req.body;
+    await User.findByIdAndUpdate(req.user._id, { busyMode: !!busyMode });
+    res.json({ ok: true, busyMode: !!busyMode });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+module.exports = { register, login, trackActivity, setBusyMode };

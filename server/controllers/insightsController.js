@@ -51,9 +51,9 @@ const getInsights = async (req, res) => {
 // ─── Gemini call ──────────────────────────────────────────────────────────────
 
 const STATIC_FALLBACK = [
-  'Your collection rate could be improved — consider sending reminders 3 days before the due date to reduce overdue invoices.',
-  'Customers who ignore multiple reminders may need a phone call. Identify your top 3 overdue customers and follow up personally.',
-  'Offering a small early-payment discount (1-2%) to your highest-value customers can significantly improve cash flow.',
+  { icon: '💡', title: 'Improve Collections', insight: 'Your collection rate could be improved — consider sending reminders 3 days before the due date to reduce overdue invoices.' },
+  { icon: '⚠️', title: 'Follow Up Personally', insight: 'Customers who ignore multiple reminders may need a phone call. Identify your top 3 overdue customers and follow up personally.' },
+  { icon: '📈', title: 'Early Payment Incentive', insight: 'Offering a small early-payment discount (1-2%) to your highest-value customers can significantly improve cash flow.' },
 ];
 
 const callGemini = (summary) => {
@@ -61,18 +61,14 @@ const callGemini = (summary) => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return resolve(STATIC_FALLBACK);
 
-    const prompt = `You are a financial advisor for a small Indian business (kirana store / trader).
-Based on this business invoice summary, provide exactly 3 short, specific, actionable insights.
-
-Summary:
+    const prompt = `You are a business advisor for an Indian small business owner.
+Based on this data:
 ${summary}
 
-Rules:
-- Each insight must be 1-2 sentences max
-- Be specific and practical (mention numbers where useful)
-- Focus on: cash flow, collections, customer behaviour, or growth
-- Return ONLY a JSON array of 3 strings, no markdown, no explanation
-Example output: ["Insight 1 here.", "Insight 2 here.", "Insight 3 here."]`;
+Give exactly 3 short actionable insights in 1 sentence each.
+Format as JSON array: [{"icon": "emoji", "title": "Short Title", "insight": "One sentence insight."}]
+Use icons from: 💡 ⚠️ 📈 💰 🎯
+Return ONLY the JSON array, no markdown, no explanation.`;
 
     const body = JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
@@ -99,7 +95,18 @@ Example output: ["Insight 1 here.", "Insight 2 here.", "Insight 3 here."]`;
 
           const clean = text.replace(/```json?\n?/gi, '').replace(/```/g, '').trim();
           const arr = JSON.parse(clean);
-          if (Array.isArray(arr) && arr.length >= 3) return resolve(arr.slice(0, 3));
+          if (Array.isArray(arr) && arr.length >= 3) {
+            // Normalise: support both string array and object array from Gemini
+            const normalised = arr.slice(0, 3).map((item, i) => {
+              if (typeof item === 'string') {
+                const icons = ['💡', '⚠️', '📈'];
+                const titles = ['Key Insight', 'Watch Out', 'Growth Tip'];
+                return { icon: icons[i], title: titles[i], insight: item };
+              }
+              return { icon: item.icon || '💡', title: item.title || 'Insight', insight: item.insight || item.text || '' };
+            });
+            return resolve(normalised);
+          }
           resolve(STATIC_FALLBACK);
         } catch {
           resolve(STATIC_FALLBACK);

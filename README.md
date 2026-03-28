@@ -1,76 +1,77 @@
 # Smart Invoicing Assistant
-> AI-powered invoicing and payment reminder system for small Indian businesses
+> AI-powered invoice and payment automation for Indian small businesses
 
 ---
 
 ## Problem
-Small kirana stores, freelancers, and traders spend hours chasing overdue payments manually — sending WhatsApp messages one by one, forgetting follow-ups, and having no visibility into which customers consistently pay late.
+
+Small businesses (kirana stores, freelancers, traders) lose money chasing payments manually across fragmented apps — no smart notifications, no context-aware reminders, no visibility into who pays late.
 
 ## Solution
-Smart Invoicing Assistant automates the entire reminder workflow using an AI context engine. It evaluates each invoice against 5 smart rules (paid, active user, ignored count, overdue days, business hours) and generates personalised Hinglish reminder messages via Google Gemini — with zero manual effort.
 
----
-
-## Tech Stack
-
-**Frontend**
-- React 18 + Vite
-- Tailwind CSS (dark theme)
-- React Router v6
-- Recharts (analytics charts)
-- qrcode.react (UPI QR codes)
-- jsPDF + jspdf-autotable (PDF export)
-- Web Speech API (voice invoice input)
-
-**Backend**
-- Node.js + Express
-- MongoDB + Mongoose
-- JWT authentication (bcryptjs)
-- Google Gemini 1.5 Flash API (native https, no extra SDK)
+A context-aware system that automates invoicing, decides when to send/delay/suppress/escalate reminders using AI, sends real emails via Nodemailer, and eliminates all manual follow-up work.
 
 ---
 
 ## Features
-- GST-compliant invoice creation with PDF export
+
+- GST-compliant invoice generation with PDF download
 - UPI QR code per invoice
-- AI reminder engine: SUPPRESS / DELAY / SEND / ESCALATE decisions
-- Multi-language reminders: Hinglish, English, Hindi, Marathi, Tamil
-- Busy Mode: pause all reminders with one toggle
-- AI Insights: Gemini-generated business insights on the dashboard
-- Customer Health Score: 0–100 score per customer based on payment behaviour
-- Voice invoice creation: speak "Create invoice for Raj 5000"
+- Smart reminder engine (5 context-aware rules: SUPPRESS / DELAY / SEND / ESCALATE)
+- Gemini AI message generation in 5 languages (Hinglish, English, Hindi, Marathi, Tamil)
+- **Real email sending** via Nodemailer + Gmail SMTP (invoice creation + reminders)
+- **Notification inbox** with priority levels, bell dropdown, 30s polling
+- **Busy Mode** — pause all reminders with one toggle (synced to backend)
+- **AI Insights** — Gemini-generated business insights with icon + title
+- **Customer Health Score** — 0–100 score per customer (payment rate, overdue, ignored)
+- **Priority Score Engine** — numeric 0–110 score per invoice based on overdue days, amount, ignored count
+- Voice invoice creation (Web Speech API + Gemini parser)
 - Advanced analytics: top customers, products, payment patterns
 - Activity tracking: respects owner's active/idle state before sending reminders
 
 ---
 
-## How to Run
+## Tech Stack
+
+| Layer     | Stack |
+|-----------|-------|
+| Frontend  | React 18 + Vite + TailwindCSS + Recharts |
+| Backend   | Node.js + Express |
+| Database  | MongoDB Atlas (Mongoose) |
+| AI        | Google Gemini 1.5 Flash |
+| Email     | Nodemailer + Gmail SMTP |
+
+---
+
+## Setup
 
 ### Prerequisites
 - Node.js 18+
 - MongoDB Atlas account (or local MongoDB)
 - Google Gemini API key
+- Gmail account with [App Password](https://myaccount.google.com/apppasswords)
 
-### 1. Clone and install
+### 1. Install dependencies
 
 ```bash
-# Install server dependencies
-cd server
-npm install
-
-# Install client dependencies
-cd ../client
-npm install
+cd server && npm install
+cd ../client && npm install
 ```
 
 ### 2. Configure environment
 
 Create `server/.env`:
+
 ```
 MONGO_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/smartinvoice
 JWT_SECRET=your_secret_key
 GEMINI_API_KEY=your_gemini_api_key
 PORT=5000
+
+# Email (optional — skip to disable email sending)
+EMAIL_USER=your_gmail@gmail.com
+EMAIL_PASS=your_gmail_app_password
+UPI_ID=your_upi_id@bank
 ```
 
 ### 3. Seed demo data
@@ -97,6 +98,7 @@ App runs at: **http://localhost:5173**
 ---
 
 ## Demo Credentials
+
 ```
 Email:    demo@kirana.com
 Password: demo1234
@@ -119,40 +121,49 @@ node demoSimulation.js
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/auth/register` | Register user |
-| POST | `/api/auth/login` | Login |
-| PATCH | `/api/auth/activity` | Update user activity timestamp |
-| GET | `/api/customers` | List customers |
-| GET | `/api/customers/:id/health` | Customer health score (0-100) |
-| GET | `/api/invoices` | List invoices |
-| POST | `/api/invoices` | Create invoice |
-| PATCH | `/api/invoices/:id/status` | Update invoice status |
-| POST | `/api/reminders/smart` | Run smart reminders (activity-aware) |
-| POST | `/api/reminders/evaluate-all` | Basic reminder evaluation |
-| GET | `/api/analytics/top-customers` | Top 5 customers by revenue |
-| GET | `/api/analytics/payment-patterns` | On-time vs late payers |
-| GET | `/api/analytics/products` | Top 5 most sold products |
-| GET | `/api/insights` | AI-generated business insights |
-| POST | `/api/voice/parse` | Parse voice command to invoice fields |
+| POST   | `/api/auth/register`             | Register user |
+| POST   | `/api/auth/login`                | Login |
+| PATCH  | `/api/auth/activity`             | Update user activity timestamp |
+| PATCH  | `/api/auth/busy-mode`            | Sync busy mode to backend |
+| GET    | `/api/customers`                 | List customers |
+| GET    | `/api/customers/:id/health`      | Customer health score (0–100) |
+| GET    | `/api/invoices`                  | List invoices |
+| POST   | `/api/invoices`                  | Create invoice (triggers email + notification) |
+| PATCH  | `/api/invoices/:id/status`       | Update invoice status (payment triggers notification) |
+| POST   | `/api/reminders/smart`           | Run smart reminders (activity-aware, emails, notifications) |
+| POST   | `/api/reminders/evaluate-all`    | Basic reminder evaluation |
+| GET    | `/api/analytics/top-customers`   | Top 5 customers by revenue |
+| GET    | `/api/analytics/payment-patterns`| On-time vs late payers |
+| GET    | `/api/analytics/products`        | Top 5 most sold products |
+| GET    | `/api/insights`                  | AI-generated business insights [{icon, title, insight}] |
+| POST   | `/api/voice/parse`               | Parse voice command to invoice fields |
+| GET    | `/api/notifications`             | All notifications (newest first) |
+| GET    | `/api/notifications/unread-count`| Unread count for bell badge |
+| PATCH  | `/api/notifications/:id/read`    | Mark single notification read |
+| PATCH  | `/api/notifications/read-all`    | Mark all notifications read |
 
 ---
 
-## Screenshots
+## Priority Score Engine
 
-### Dashboard
-<!-- Add screenshot here -->
+Each invoice gets a numeric score (0–110):
 
-### Invoice List with QR Codes
-<!-- Add screenshot here -->
+| Factor         | Points |
+|----------------|--------|
+| 0 days overdue | 0 |
+| 1–3 days       | +10 |
+| 4–7 days       | +25 |
+| 8–14 days      | +40 |
+| 15+ days       | +60 |
+| Amount < ₹1k   | 0 |
+| ₹1k–5k         | +10 |
+| ₹5k–10k        | +20 |
+| > ₹10k         | +30 |
+| ignored 0×     | 0 |
+| ignored 1–2×   | +10 |
+| ignored 3+×    | +20 |
 
-### AI Reminder Engine Results
-<!-- Add screenshot here -->
-
-### Customer Health Scores
-<!-- Add screenshot here -->
-
-### Analytics
-<!-- Add screenshot here -->
+**0–20 = low · 21–50 = medium · 51+ = high**
 
 ---
 
@@ -162,15 +173,21 @@ node demoSimulation.js
 Automation/
 ├── client/                 # React frontend
 │   └── src/
-│       ├── pages/          # Dashboard, Invoices, Customers, Reminders, Analytics, Settings
-│       ├── components/     # Layout, Sidebar
+│       ├── pages/          # Dashboard, Invoices, Customers, Reminders, Analytics, Notifications, Settings
+│       ├── components/     # Layout, Sidebar (with bell dropdown)
 │       ├── context/        # AuthContext (JWT + activity tracking)
 │       └── services/       # API calls (axios)
 └── server/                 # Node.js backend
-    ├── models/             # User, Customer, Invoice (Mongoose schemas)
-    ├── controllers/        # Auth, Invoice, Analytics, Insights, Voice
-    ├── services/           # reminderService, automationEngine, geminiService
+    ├── models/             # User, Customer, Invoice, Notification
+    ├── controllers/        # Auth, Invoice, Analytics, Insights, Voice, Notification
+    ├── services/           # reminderService, automationEngine, geminiService, emailService
     ├── routes/             # Express routers
     ├── seed.js             # Demo data (10 invoices, 5 customers)
     └── demoSimulation.js   # Terminal demo of AI decision engine
 ```
+
+---
+
+## Team
+
+Built at Hackathon 2026

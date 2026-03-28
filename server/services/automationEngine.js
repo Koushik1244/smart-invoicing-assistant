@@ -5,8 +5,10 @@
 
 const Invoice = require('../models/Invoice');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const { decideNotificationAction } = require('./reminderService');
 const { generateReminderMessage } = require('./geminiService');
+const { sendInvoiceEmail, sendReminderEmail } = require('./emailService');
 
 // ─── WhatsApp helper ──────────────────────────────────────────────────────────
 
@@ -21,12 +23,22 @@ const buildWhatsAppLink = (phone, message) => {
 const log = (event, detail) =>
   console.log(`[AUTOMATION ${new Date().toISOString()}] ${event} — ${detail}`);
 
+// ─── Save notification helper ─────────────────────────────────────────────────
+
+const saveNotification = async (userId, { title, message, type, invoiceId, customerId, priority }) => {
+  try {
+    await Notification.create({ userId, title, message, type, invoiceId, customerId, priority });
+  } catch (err) {
+    console.warn('[Notification] Failed to save:', err.message);
+  }
+};
+
 // ─── Event handlers ───────────────────────────────────────────────────────────
 
 /**
  * Triggered immediately after an invoice is created.
  */
-const handleInvoiceCreated = (invoice, customer) => {
+const handleInvoiceCreated = async (invoice, customer) => {
   const due = new Date(invoice.dueDate).toLocaleDateString('en-IN', {
     day: 'numeric', month: 'short', year: 'numeric',
   });
@@ -49,6 +61,22 @@ const handleInvoiceCreated = (invoice, customer) => {
   };
 
   log('invoice_created', result.log);
+
+  // Send email (non-blocking)
+  sendInvoiceEmail(customer, invoice).catch(err =>
+    console.warn('[Email] Invoice email failed:', err.message)
+  );
+
+  // Save notification
+  await saveNotification(invoice.userId, {
+    title: `Invoice ${invoice.invoiceNumber} created`,
+    message: `New invoice of ₹${invoice.total.toLocaleString('en-IN')} created for ${customer.name}. Due: ${due}.`,
+    type: 'invoice_created',
+    invoiceId: invoice._id,
+    customerId: customer._id,
+    priority: 'low',
+  });
+
   return result;
 };
 
@@ -67,6 +95,16 @@ const handlePaymentReceived = async (invoiceId) => {
 
   const detail = `Payment received for ${invoice.invoiceNumber} (${invoice.customerId?.name}) ₹${invoice.total} — reminders suppressed, ignoredCount reset`;
   log('payment_received', detail);
+
+  // Save notification
+  await saveNotification(invoice.userId, {
+    title: `Payment received — ${invoice.invoiceNumber}`,
+    message: `${invoice.customerId?.name} paid ₹${invoice.total.toLocaleString('en-IN')} for invoice ${invoice.invoiceNumber}.`,
+    type: 'payment_received',
+    invoiceId: invoice._id,
+    customerId: invoice.customerId?._id,
+    priority: 'low',
+  });
 
   return {
     event: 'payment_received',
@@ -124,6 +162,26 @@ const runSmartReminders = async (userId, language = 'Hinglish') => {
         if (customer?.phone && message) {
           whatsappLink = buildWhatsAppLink(customer.phone, message);
         }
+
+        // Send reminder email (non-blocking)
+        if (message) {
+          sendReminderEmail(customer, invoice, message).catch(err =>
+            console.warn('[Email] Reminder email failed:', err.message)
+          );
+        }
+
+        // Save notification
+        const isEscalation = decision.action === 'escalated';
+        await saveNotification(userId, {
+          title: isEscalation
+            ? `Escalation sent — ${invoice.invoiceNumber}`
+            : `Reminder sent — ${invoice.invoiceNumber}`,
+          message: `${isEscalation ? 'Urgent reminder' : 'Reminder'} sent to ${customer?.name} for ₹${invoice.total.toLocaleString('en-IN')} (${invoice.invoiceNumber}).`,
+          type: isEscalation ? 'escalation' : 'reminder_sent',
+          invoiceId: invoice._id,
+          customerId: customer?._id,
+          priority: isEscalation ? 'high' : 'medium',
+        });
       } catch (err) {
         message = `[AI error: ${err.message}]`;
       }
@@ -138,6 +196,7 @@ const runSmartReminders = async (userId, language = 'Hinglish') => {
       action: decision.action,
       reason: decision.reason,
       priority: decision.priority,
+      priorityScore: decision.priorityScore,
       nextSendTime: decision.nextSendTime || null,
       log: decision.log,
       message,

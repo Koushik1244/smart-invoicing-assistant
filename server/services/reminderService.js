@@ -45,24 +45,59 @@ const evaluate = (invoice) => {
 const HIGH_VALUE_THRESHOLD = 10000; // ₹10,000+  → always priority
 
 /**
+ * Calculate numeric priority score (0–110) from invoice context.
+ * Returns { priorityScore, priority }
+ *
+ * Days overdue:  0d=0  1-3d=10  4-7d=25  8-14d=40  15+d=60
+ * Amount:        <1k=0  1k-5k=10  5k-10k=20  >10k=30
+ * ignoredCount:  0=0  1-2=10  3+=20
+ * Final:         0-20=low  21-50=medium  51+=high
+ */
+const calcPriorityScore = (invoice) => {
+  const now = new Date();
+  const daysOverdue = invoice.dueDate
+    ? Math.floor((now - new Date(invoice.dueDate)) / (1000 * 60 * 60 * 24))
+    : 0;
+
+  let score = 0;
+
+  // Days overdue component
+  if (daysOverdue >= 15)      score += 60;
+  else if (daysOverdue >= 8)  score += 40;
+  else if (daysOverdue >= 4)  score += 25;
+  else if (daysOverdue >= 1)  score += 10;
+
+  // Amount component
+  const amt = invoice.total || 0;
+  if (amt > 10000)      score += 30;
+  else if (amt >= 5000) score += 20;
+  else if (amt >= 1000) score += 10;
+
+  // ignoredCount component
+  const ignored = invoice.ignoredCount || 0;
+  if (ignored >= 3)     score += 20;
+  else if (ignored >= 1) score += 10;
+
+  const priority = score >= 51 ? 'high' : score >= 21 ? 'medium' : 'low';
+  return { priorityScore: score, priority };
+};
+
+/**
  * Context-aware notification decision.
  *
  * @param {Object} user     - Logged-in business owner (has lastActiveAt)
  * @param {Object} customer - Customer doc (has lastActiveAt, reminderIgnoreCount)
  * @param {Object} invoice  - Invoice doc (status, total, dueDate, ignoredCount)
- * @returns {{ action, reason, priority, nextSendTime, log }}
+ * @returns {{ action, reason, priority, priorityScore, nextSendTime, log }}
  */
 const decideNotificationAction = (user, customer, invoice) => {
   const now = new Date();
 
-  // ── Priority helper ──────────────────────────────────────────────────────
   const daysOverdue = invoice.dueDate
     ? Math.floor((now - new Date(invoice.dueDate)) / (1000 * 60 * 60 * 24))
     : 0;
 
-  const priority = daysOverdue > 7   ? 'high'
-                 : daysOverdue >= 1  ? 'medium'
-                 : /* not overdue */   'low';
+  const { priorityScore, priority } = calcPriorityScore(invoice);
 
   // Rule 1: Paid → hard suppress
   if (invoice.status === 'paid') {
@@ -70,6 +105,7 @@ const decideNotificationAction = (user, customer, invoice) => {
       action: 'suppressed',
       reason: 'Invoice already paid — no reminder needed',
       priority: 'none',
+      priorityScore: 0,
       nextSendTime: null,
       log: `[SUPPRESS] Invoice ${invoice.invoiceNumber} — already paid`,
     };
@@ -85,6 +121,7 @@ const decideNotificationAction = (user, customer, invoice) => {
       action: 'delayed',
       reason: 'User is currently active — will send in 5 minutes',
       priority,
+      priorityScore,
       nextSendTime: next,
       log: `[DELAY] Owner active ${Math.floor(ownerIdleMinutes)}m ago — holding notification`,
     };
@@ -97,6 +134,7 @@ const decideNotificationAction = (user, customer, invoice) => {
       action: 'escalated',
       reason: `Reminder ignored ${ignoredCount} times — escalating to urgent tone`,
       priority: 'high',
+      priorityScore,
       nextSendTime: null,
       log: `[ESCALATE] ${customer?.name} ignored ${ignoredCount} reminders — urgent escalation`,
     };
@@ -112,6 +150,7 @@ const decideNotificationAction = (user, customer, invoice) => {
       action: daysOverdue > 7 ? 'escalated' : 'sent',
       reason,
       priority: 'high',
+      priorityScore,
       nextSendTime: null,
       log: `[${daysOverdue > 7 ? 'ESCALATE' : 'SEND'}] ${reason}`,
     };
@@ -124,8 +163,9 @@ const decideNotificationAction = (user, customer, invoice) => {
       ? `Invoice overdue by ${daysOverdue} day(s) — reminder appropriate`
       : 'Invoice due — sending friendly reminder',
     priority,
+    priorityScore,
     nextSendTime: null,
-    log: `[SEND] ${customer?.name} — priority ${priority}`,
+    log: `[SEND] ${customer?.name} — score ${priorityScore} (${priority})`,
   };
 };
 
