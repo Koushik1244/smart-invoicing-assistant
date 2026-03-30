@@ -3,6 +3,8 @@
 AI-powered invoicing, reminders, and light inventory tooling for Indian small businesses — React + Express + MongoDB.
 
 **GitHub:** https://github.com/Koushik1244/smart-invoicing-assistant
+**Live App:** https://smart-invoicing-assistant.vercel.app
+**Backend:** https://smart-invoicing-assistant.onrender.com
 
 ---
 
