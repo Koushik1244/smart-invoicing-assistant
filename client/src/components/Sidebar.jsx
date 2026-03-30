@@ -1,5 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { getUnreadCount } from '../services/api';
 
 const Icon = ({ path, path2 }) => (
   <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
@@ -24,6 +26,15 @@ export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    const fetchUnread = () =>
+      getUnreadCount().then(r => setUnread(r.data.count || 0)).catch(() => {});
+    fetchUnread();
+    const id = setInterval(fetchUnread, 30000);
+    return () => clearInterval(id);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -76,6 +87,11 @@ export default function Sidebar({ isOpen, onClose }) {
                   <Icon path={icon} path2={icon2} />
                 </span>
                 {label}
+                {to === '/notifications' && unread > 0 && (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    {unread > 99 ? '99+' : unread}
+                  </span>
+                )}
               </Link>
             );
           })}

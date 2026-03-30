@@ -1,6 +1,6 @@
 const express = require('express');
 const { parseVoiceCommand } = require('../controllers/voiceController');
-const { protect } = require('../middleware/authMiddleware');
+const protect = require('../middleware/authMiddleware');
 
 const router = express.Router();
 

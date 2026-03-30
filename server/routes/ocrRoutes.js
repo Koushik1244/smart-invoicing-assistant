@@ -1,7 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const multer  = require('multer');
-const { protect }  = require('../middleware/authMiddleware');
+const protect  = require('../middleware/authMiddleware');
 const { scanBill } = require('../controllers/ocrController');
 
 // Store file in memory — pass buffer directly to Tesseract

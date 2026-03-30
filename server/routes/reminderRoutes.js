@@ -1,6 +1,6 @@
 const express = require('express');
 const { evaluateOne, evaluateAll } = require('../controllers/reminderController');
-const { protect } = require('../middleware/authMiddleware');
+const protect = require('../middleware/authMiddleware');
 const { runSmartReminders } = require('../services/automationEngine');
 const { parseVoiceCommand } = require('../utils/voiceParser');
 

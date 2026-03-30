@@ -31,6 +31,7 @@ app.use('/api/raw-materials',  require('./routes/rawMaterialRoutes'));
 app.use('/api/inventory',      require('./routes/inventoryRoutes'));
 app.use('/api/suppliers',      require('./routes/supplierRoutes'));
 app.use('/api/ocr',            require('./routes/ocrRoutes'));
+app.use('/api/automation',     require('./routes/automationRoutes'));
 
 // ─── Scheduled automation (every 60 seconds) ─────────────────────────────────
 const { autoRunAllUsers } = require('./services/automationEngine');

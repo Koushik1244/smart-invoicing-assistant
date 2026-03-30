@@ -10,10 +10,11 @@ require('dotenv').config();
 const connectDB = require('./config/db');
 
 // Register all models before any query runs (Mongoose requires this for populate)
-const User         = require('./models/User');
-const Customer     = require('./models/Customer');      // required for populate('customerId')
-const Invoice      = require('./models/Invoice');
-const Notification = require('./models/Notification');  // required for any notification-related populate
+const User           = require('./models/User');
+const Customer       = require('./models/Customer');       // required for populate('customerId')
+const Invoice        = require('./models/Invoice');
+const AutomationLog  = require('./models/AutomationLog');  // available for log queries if needed
+const Notification   = require('./models/Notification');   // required for any notification-related populate
 const { decideNotificationAction } = require('./services/reminderService');
 
 // ── Terminal colors ───────────────────────────────────────────────────────────

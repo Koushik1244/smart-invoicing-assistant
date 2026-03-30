@@ -1,6 +1,6 @@
 const express = require('express');
 const { create, getAll, getById, remove } = require('../controllers/customerController');
-const { protect } = require('../middleware/authMiddleware');
+const protect = require('../middleware/authMiddleware');
 const Invoice = require('../models/Invoice');
 
 const router = express.Router();

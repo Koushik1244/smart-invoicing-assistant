@@ -5,7 +5,7 @@ const {
   getPaymentPatterns,
   getTopProducts,
 } = require('../controllers/analyticsController');
-const { protect } = require('../middleware/authMiddleware');
+const protect = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
